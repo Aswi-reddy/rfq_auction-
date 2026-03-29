@@ -6,28 +6,15 @@
       "use": "@vercel/python",
       "config": {
         "maxLambdaSize": "15mb",
-        "runtime": "python3.11"
-      }
-    },
-    {
-      "src": "build_script.sh",
-      "use": "@vercel/static-build",
-      "config": {
-        "distDir": "staticfiles"
+        "runtime": "python3.11",
+        "requirements": "requirements.txt"
       }
     }
   ],
   "routes": [
     {
-      "src": "/static/(.*)",
-      "dest": "/static/$1"
-    },
-    {
       "src": "/(.*)",
       "dest": "rfq_auction/wsgi.py"
     }
-  ],
-  "env": {
-    "DEBUG": "False"
-  }
+  ]
 }
