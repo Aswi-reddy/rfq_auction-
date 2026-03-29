@@ -10,11 +10,14 @@ sys.path.insert(0, str(project_root))
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'rfq_auction.settings')
 
 import django
-django.setup()
+from django.conf import settings
 
-from rfq_auction.wsgi import application
+if not settings.configured:
+    django.setup()
 
-# Export for Vercel
-app = application
+# Import WSGI app
+from rfq_auction.wsgi import application as app
+
+
 
 
