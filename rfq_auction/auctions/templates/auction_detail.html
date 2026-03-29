@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ auction.name }} - RFQ Auction System</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f5f7fa;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+
+        .header-info {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .header-info-item {
+            background: rgba(255,255,255,0.1);
+            padding: 15px;
+            border-radius: 8px;
+        }
+
+        .header-info-item strong {
+            display: block;
+            font-size: 12px;
+            opacity: 0.8;
+            margin-bottom: 5px;
+        }
+
+        .header-info-item .value {
+            font-size: 18px;
+            font-weight: 700;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .auction-info {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .card {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+        }
+
+        .card h2 {
+            font-size: 16px;
+            color: #333;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+
+        .card p {
+            margin: 12px 0;
+            color: #555;
+            font-size: 14px;
+        }
+
+        .card strong {
+            color: #333;
+        }
+
+        .status-label {
+            display: inline-block;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .status-active {
+            background: #c8e6c9;
+            color: #2e7d32;
+        }
+
+        .status-closed {
+            background: #ffccbc;
+            color: #bf360c;
+        }
+
+        .config-card {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+        }
+
+        .config-label {
+            font-size: 12px;
+            color: #999;
+            text-transform: uppercase;
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+
+        .config-value {
+            font-size: 16px;
+            font-weight: 700;
+            color: #333;
+            margin-bottom: 15px;
+        }
+
+        .rankings-section {
+            margin-bottom: 30px;
+        }
+
+        .rankings-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .rankings-header h2 {
+            font-size: 22px;
+            color: #333;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+            overflow: hidden;
+        }
+
+        th {
+            background: #f5f7fa;
+            padding: 16px;
+            text-align: left;
+            font-weight: 600;
+            color: #333;
+            border-bottom: 2px solid #e0e0e0;
+            font-size: 12px;
+            text-transform: uppercase;
+        }
+
+        td {
+            padding: 16px;
+            border-bottom: 1px solid #f0f0f0;
+            color: #555;
+            font-size: 14px;
+        }
+
+        tr:hover {
+            background: #fafbfc;
+        }
+
+        tr.my-bid {
+            background: #fffacd;
+            border-left: 4px solid #ffc700;
+        }
+
+        .rank-badge {
+            display: inline-block;
+            background: #667eea;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-weight: 600;
+            font-size: 12px;
+            min-width: 40px;
+            text-align: center;
+        }
+
+        .highlight-total {
+            color: #f5576c;
+            font-weight: 700;
+            font-size: 16px;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #999;
+        }
+
+        .empty-state p {
+            font-size: 32px;
+            margin-bottom: 10px;
+        }
+
+        .activity-section {
+            margin-bottom: 30px;
+        }
+
+        .activity-header {
+            font-size: 22px;
+            color: #333;
+            margin-bottom: 20px;
+        }
+
+        .activity-log {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+            padding: 0;
+        }
+
+        .activity-item {
+            padding: 15px 20px;
+            border-bottom: 1px solid #f0f0f0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .activity-item:last-child {
+            border-bottom: none;
+        }
+
+        .activity-type {
+            color: #667eea;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .activity-time {
+            color: #999;
+            font-size: 12px;
+        }
+
+        .action-section {
+            margin-top: 30px;
+            display: flex;
+            gap: 15px;
+        }
+
+        .btn {
+            flex: 1;
+            padding: 14px;
+            font-weight: 600;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: transform 0.2s;
+            text-decoration: none;
+            display: inline-block;
+            text-align: center;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+        }
+
+        .btn-secondary {
+            background: #f0f0f0;
+            color: #333;
+        }
+
+        .btn-secondary:hover {
+            background: #e0e0e0;
+        }
+
+        .success-message {
+            background: #c8e6c9;
+            color: #2e7d32;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            font-weight: 500;
+        }
+
+        .closed-message {
+            background: #ffccbc;
+            color: #bf360c;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+            font-weight: 500;
+            text-align: center;
+        }
+
+        .back-link {
+            margin-bottom: 20px;
+        }
+
+        .back-link a {
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .back-link a:hover {
+            text-decoration: underline;
+        }
+
+        @media (max-width: 768px) {
+            .auction-info {
+                grid-template-columns: 1fr;
+            }
+
+            .header-info {
+                grid-template-columns: 1fr;
+            }
+
+            .action-section {
+                flex-direction: column;
+            }
+
+            table {
+                font-size: 12px;
+            }
+
+            td, th {
+                padding: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="back-link">
+            <a href="{% if request.user.groups.all.0.name == 'Auctioneer' %}{% url 'auctioneer_dashboard' %}{% else %}{% url 'bidder_dashboard' %}{% endif %}">← Back to Dashboard</a>
+        </div>
+
+        <div class="header">
+            <h1>📋 {{ auction.name }}</h1>
+            <p>{{ auction.description }}</p>
+            <div class="header-info">
+                <div class="header-info-item">
+                    <strong>Status</strong>
+                    <div class="value">
+                        <span class="status-label status-{{ auction.status|lower }}">
+                            ● {{ auction.status }}
+                        </span>
+                    </div>
+                </div>
+                <div class="header-info-item">
+                    <strong>Closes At</strong>
+                    <div class="value">{{ auction.get_effective_close_time|date:"M d, H:i" }}</div>
+                </div>
+                <div class="header-info-item">
+                    <strong>Extensions</strong>
+                    <div class="value">{{ auction.total_extensions }}</div>
+                </div>
+                <div class="header-info-item">
+                    <strong>Total Bids</strong>
+                    <div class="value">{{ bids|length }}</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="auction-info">
+            <div class="card">
+                <h2>📝 Auction Details</h2>
+                <p><strong>Description:</strong> {{ auction.description }}</p>
+                <p><strong>Start Time:</strong> {{ auction.bid_start_time|date:"M d, Y H:i" }}</p>
+                <p><strong>Close Time:</strong> {{ auction.get_effective_close_time|date:"M d, Y H:i" }}</p>
+                <p><strong>Forced Close:</strong> {{ auction.forced_close_time|date:"M d, Y H:i" }}</p>
+            </div>
+            <div class="config-card">
+                <h2>⚙️ Configuration</h2>
+                <div class="config-label">Trigger Window (X)</div>
+                <div class="config-value">{{ auction.config.trigger_window_x }} min</div>
+                
+                <div class="config-label">Extension Duration (Y)</div>
+                <div class="config-value">{{ auction.config.extension_duration_y }} min</div>
+                
+                <div class="config-label">Trigger Type</div>
+                <div class="config-value">{{ auction.config.get_trigger_type_display }}</div>
+            </div>
+        </div>
+
+        <!-- Live Rankings Section -->
+        <div class="rankings-section">
+            <div class="rankings-header">
+                <h2>🏆 Live Rankings</h2>
+                <span style="font-size: 12px; color: #999;">Sorted by Total Cost</span>
+            </div>
+
+            {% if bids %}
+            <table>
+                <thead>
+                    <tr>
+                        <th>Rank</th>
+                        <th>Base Price</th>
+                        <th>Freight</th>
+                        <th>Origin Fee</th>
+                        <th>Dest Fee</th>
+                        <th>Total Cost</th>
+                        <th>Transit (Days)</th>
+                        <th>Validity (Days)</th>
+                        <th>Submitted</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for bid in bids %}
+                    <tr {% if my_bid.id == bid.id %}class="my-bid"{% endif %}>
+                        <td>
+                            <span class="rank-badge">L{{ forloop.counter }}</span>
+                        </td>
+                        <td>₹{{ bid.price }}</td>
+                        <td>₹{{ bid.freight_charges }}</td>
+                        <td>₹{{ bid.origin_charges }}</td>
+                        <td>₹{{ bid.destination_charges }}</td>
+                        <td>
+                            <span class="highlight-total">₹{{ bid.total_cost }}</span>
+                        </td>
+                        <td>{{ bid.transit_time_days }}</td>
+                        <td>{{ bid.quote_validity_days }}</td>
+                        <td>{{ bid.submitted_at|date:"M d H:i" }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <div class="card empty-state">
+                <p>👀</p>
+                <p>No bids yet - be the first to bid!</p>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Activity Log Section -->
+        <div class="activity-section">
+            <h2 class="activity-header">📊 Activity Log</h2>
+            {% if events %}
+            <div class="activity-log">
+                {% for event in events %}
+                <div class="activity-item">
+                    <div>
+                        <div class="activity-type">{{ event.get_event_type_display }}</div>
+                        <div style="color: #555; margin-top: 5px;">{{ event.description }}</div>
+                    </div>
+                    <div class="activity-time">{{ event.created_at|date:"M d H:i" }}</div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="card empty-state">
+                <p>📋</p>
+                <p>No activity logged yet</p>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Action Section -->
+        {% if user.is_authenticated and auction.is_active %}
+            {% if my_bid %}
+            <div class="success-message">✅ Your current bid: ₹{{ my_bid.total_cost }}</div>
+            {% endif %}
+            <div class="action-section">
+                <a href="{% url 'place_bid' auction.id %}" class="btn btn-primary">
+                    💰 {% if my_bid %}Update My Bid{% else %}Place Your Bid Now!{% endif %}
+                </a>
+                <a href="{% if request.user.groups.all.0.name == 'Auctioneer' %}{% url 'auctioneer_dashboard' %}{% else %}{% url 'bidder_dashboard' %}{% endif %}" class="btn btn-secondary">
+                    ← Back
+                </a>
+            </div>
+        {% elif not user.is_authenticated %}
+            <div class="action-section">
+                <a href="{% url 'bidder_login' %}" class="btn btn-primary">
+                    💰 Login to Bid
+                </a>
+            </div>
+        {% else %}
+            <div class="closed-message">❌ This auction is now closed - bidding has ended</div>
+        {% endif %}
+    </div>
+</body>
+</html>

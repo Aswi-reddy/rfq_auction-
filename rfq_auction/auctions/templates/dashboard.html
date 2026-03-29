@@ -1,0 +1,33 @@
+{% extends 'base.html' %}
+{% block title %}Dashboard - RFQ Auction System{% endblock %}
+{% block content %}
+<h2>📊 Dashboard</h2>
+<p style="margin-bottom: 20px; color: #666;">Welcome, <strong>{{ request.user.username }}</strong></p>
+
+<!-- Stats Cards -->
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 30px;">
+    <div style="padding: 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-radius: 10px; text-align: center;">
+        <p style="font-size: 32px; margin: 0;">{{ active_auction_count }}</p>
+        <p style="font-size: 13px; color: rgba(255,255,255,0.8); margin: 10px 0 0 0;">Active Auctions</p>
+    </div>
+    <div style="padding: 20px; background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white; border-radius: 10px; text-align: center;">
+        <p style="font-size: 32px; margin: 0;">{{ total_bids }}</p>
+        <p style="font-size: 13px; color: rgba(255,255,255,0.8); margin: 10px 0 0 0;">Your Bids</p>
+    </div>
+</div>
+
+<!-- Quick Actions -->
+<h3>🎯 Quick Actions</h3>
+<div style="margin-bottom: 30px;">
+    <a href="{% url 'bidder_dashboard' %}" style="display: inline-block; background: #667eea; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; margin-right: 10px; margin-bottom: 10px;">
+        📋 View My Bids
+    </a>
+    <a href="{% url 'auctioneer_dashboard' %}" style="display: inline-block; background: #f5576c; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; margin-right: 10px; margin-bottom: 10px;">
+        📊 View My Auctions
+    </a>
+</div>
+
+<p style="text-align: center; color: #999; margin-top: 50px;">
+    <a href="{% url 'landing' %}" style="color: #667eea; text-decoration: none;">← Back to Home</a>
+</p>
+{% endblock %}

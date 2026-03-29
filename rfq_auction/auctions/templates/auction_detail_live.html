@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ auction.name|default:"Auction" }} - Live Auction</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Inter', 'Segoe UI', sans-serif; background: #0a0e1a; color: #e2e8f0; min-height: 100vh; padding: 20px; }
+        .container { max-width: 1440px; margin: 0 auto; }
+
+        /* Header */
+        .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%); padding: 32px; border-radius: 16px; margin-bottom: 28px; box-shadow: 0 12px 40px rgba(102, 126, 234, 0.35); position: relative; overflow: hidden; }
+        .header::before { content: ''; position: absolute; top: -50%; right: -20%; width: 300px; height: 300px; background: rgba(255,255,255,0.06); border-radius: 50%; }
+        .header h1 { font-size: 30px; font-weight: 800; margin-bottom: 8px; letter-spacing: -0.5px; }
+        .header h1 i { margin-right: 10px; }
+        .header p { opacity: 0.9; font-size: 15px; margin-bottom: 20px; }
+        .header-info { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-top: 20px; }
+        .header-info-item { background: rgba(255,255,255,0.12); backdrop-filter: blur(10px); padding: 16px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1); }
+        .header-info-item strong { display: block; font-size: 10px; opacity: 0.7; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 1px; font-weight: 600; }
+        .header-info-item .value { font-size: 22px; font-weight: 800; }
+
+        /* Status badges */
+        .status-badge { display: inline-flex; align-items: center; gap: 6px; padding: 5px 14px; border-radius: 20px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
+        .status-active { background: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); }
+        .status-closed { background: rgba(239, 68, 68, 0.2); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3); }
+
+        /* Live pulse */
+        .live-dot { width: 8px; height: 8px; background: #10b981; border-radius: 50%; display: inline-block; animation: pulse 1.5s infinite; }
+        @keyframes pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.5; transform: scale(1.3); } }
+
+        /* Controls */
+        .controls { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; flex-wrap: wrap; gap: 12px; padding: 12px 16px; background: #111827; border-radius: 10px; border: 1px solid #1f2937; }
+        .controls-left { display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 13px; }
+
+        /* Cards */
+        .card { background: #111827; padding: 24px; border-radius: 14px; border: 1px solid #1f2937; margin-bottom: 20px; transition: border-color 0.2s; }
+        .card:hover { border-color: #374151; }
+        .card h2 { font-size: 16px; font-weight: 700; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid #1f2937; color: #f1f5f9; letter-spacing: -0.2px; }
+        .card h2 i { margin-right: 8px; color: #818cf8; }
+
+        /* Table */
+        table { width: 100%; border-collapse: collapse; }
+        th { background: #0d1117; padding: 12px 14px; text-align: left; font-weight: 600; color: #818cf8; border-bottom: 2px solid #1f2937; font-size: 10px; text-transform: uppercase; letter-spacing: 1px; white-space: nowrap; }
+        td { padding: 12px 14px; border-bottom: 1px solid #1f2937; font-size: 13px; white-space: nowrap; }
+        tr { transition: background 0.15s; }
+        tr:hover { background: rgba(99, 102, 241, 0.05); }
+        tr.my-bid { background: rgba(99, 102, 241, 0.1); border-left: 3px solid #818cf8; }
+        tr.my-bid:hover { background: rgba(99, 102, 241, 0.15); }
+
+        /* Rank badges */
+        .rank-badge { padding: 4px 10px; border-radius: 6px; font-weight: 700; font-size: 11px; display: inline-block; min-width: 36px; text-align: center; }
+        .rank-l1 { background: linear-gradient(135deg, #f59e0b, #d97706); color: #fff; box-shadow: 0 2px 8px rgba(245, 158, 11, 0.3); }
+        .rank-l2 { background: rgba(148, 163, 184, 0.2); color: #94a3b8; }
+        .rank-l3 { background: rgba(100, 116, 139, 0.15); color: #64748b; }
+        .rank-default { background: rgba(71, 85, 105, 0.1); color: #475569; }
+
+        .highlight-total { color: #818cf8; font-weight: 700; font-size: 15px; }
+        .charge-dim { color: #64748b; font-size: 12px; }
+
+        /* Buttons */
+        .btn { padding: 10px 22px; background: linear-gradient(135deg, #667eea, #764ba2); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; font-size: 13px; transition: all 0.2s; }
+        .btn:hover { transform: translateY(-1px); box-shadow: 0 4px 16px rgba(102, 126, 234, 0.4); }
+        .btn:active { transform: translateY(0); }
+        .btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+        .btn-sm { padding: 6px 14px; font-size: 12px; }
+
+        /* Activity log */
+        .event-item { padding: 12px 0; border-bottom: 1px solid #1f2937; }
+        .event-type { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
+        .event-type-BID_RECEIVED, .event-type-BID_REVISED { color: #60a5fa; }
+        .event-type-L1_CHANGED { color: #f59e0b; }
+        .event-type-EXTENDED { color: #f472b6; }
+        .event-type-CLOSED, .event-type-FORCE_CLOSED { color: #ef4444; }
+        .event-type-AUCTION_CREATED { color: #34d399; }
+        .event-type-RANK_CHANGED { color: #a78bfa; }
+        .event-desc { color: #94a3b8; font-size: 12px; margin-top: 2px; line-height: 1.4; }
+        .event-time { color: #475569; font-size: 10px; margin-top: 4px; font-weight: 500; }
+
+        /* Config section */
+        .config-item { margin-bottom: 16px; }
+        .config-label { font-size: 10px; color: #64748b; text-transform: uppercase; letter-spacing: 1px; font-weight: 600; }
+        .config-value { font-size: 18px; font-weight: 700; color: #818cf8; margin-top: 4px; }
+
+        /* Layout */
+        .layout { display: grid; grid-template-columns: 2.2fr 1fr; gap: 20px; margin-bottom: 30px; }
+        @media (max-width: 900px) { .layout { grid-template-columns: 1fr; } }
+
+        .back-link { margin-bottom: 16px; }
+        .back-link a { color: #818cf8; text-decoration: none; font-weight: 600; font-size: 13px; transition: color 0.2s; }
+        .back-link a:hover { color: #a5b4fc; }
+        .back-link a i { margin-right: 6px; }
+
+        .empty-state { text-align: center; padding: 48px 20px; color: #475569; font-size: 14px; }
+        .empty-state i { font-size: 36px; margin-bottom: 10px; display: block; }
+
+        /* Extension alert */
+        .extension-alert { background: rgba(244, 114, 182, 0.1); border: 1px solid rgba(244, 114, 182, 0.3); color: #f9a8d4; padding: 12px 16px; border-radius: 8px; font-size: 13px; font-weight: 600; margin-bottom: 16px; display: none; animation: fadeIn 0.3s; }
+        .extension-alert i { margin-right: 6px; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* Closed banner */
+        .closed-banner { background: rgba(239, 68, 68, 0.1); border: 2px solid rgba(239, 68, 68, 0.3); color: #fca5a5; padding: 20px; border-radius: 10px; text-align: center; font-weight: 700; font-size: 15px; }
+        .closed-banner i { margin-right: 6px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="back-link">
+            {% if user_role == 'bidder' %}
+            <a href="{% url 'bidder_dashboard' %}"><i class="fas fa-arrow-left"></i> Back to Bidder Dashboard</a>
+            {% else %}
+            <a href="{% url 'auctioneer_dashboard' %}"><i class="fas fa-arrow-left"></i> Back to Auctioneer Dashboard</a>
+            {% endif %}
+        </div>
+
+        <div class="header">
+            <h1><i class="fas fa-file-contract"></i> {{ auction.name|default:"Auction" }}</h1>
+            <p>{{ auction.description|default:"No description" }}</p>
+            <div class="header-info">
+                <div class="header-info-item">
+                    <strong>Status</strong>
+                    <div class="value" id="auctionStatus">
+                        <span class="status-badge {% if auction.status == 'ACTIVE' %}status-active{% else %}status-closed{% endif %}">
+                            {% if auction.status == 'ACTIVE' %}<span class="live-dot"></span>{% endif %}
+                            <span id="statusText">{{ auction.get_status_display }}</span>
+                        </span>
+                    </div>
+                </div>
+                <div class="header-info-item">
+                    <strong>Time Remaining</strong>
+                    <div class="value" id="timeRemaining">Loading...</div>
+                </div>
+                <div class="header-info-item">
+                    <strong>Total Bidders</strong>
+                    <div class="value" id="bidCount">{{ bids|length }}</div>
+                </div>
+                <div class="header-info-item">
+                    <strong>Lowest Bid (L1)</strong>
+                    <div class="value" id="lowestBid">{% if bids %}₹{{ bids.0.total_cost }}{% else %}—{% endif %}</div>
+                </div>
+                <div class="header-info-item">
+                    <strong>Extensions</strong>
+                    <div class="value" id="extensionCount">{{ auction.total_extensions }}</div>
+                </div>
+            </div>
+        </div>
+
+        <div id="extensionAlert" class="extension-alert">
+            <i class="fas fa-clock-rotate-left"></i> Auction has been EXTENDED! New close time updated.
+        </div>
+
+        <div class="controls">
+            <div class="controls-left">
+                <span class="live-dot"></span>
+                <span>Live Updates</span>
+                <span style="color: #475569; font-size: 12px;" id="lastUpdate"></span>
+            </div>
+            <button class="btn btn-sm" id="refreshBtn" onclick="refreshAuctionData()"><i class="fas fa-arrows-rotate"></i> Refresh</button>
+        </div>
+
+        <div class="layout">
+            <div>
+                <!-- Auction Details -->
+                <div class="card">
+                    <h2><i class="fas fa-info-circle"></i> Auction Details</h2>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; font-size: 13px;">
+                        <div><span style="color: #64748b;">Start Time:</span><br><strong>{{ auction.bid_start_time|date:"M d, Y H:i" }}</strong></div>
+                        <div><span style="color: #64748b;">Current Close:</span><br><strong id="detailCloseTime">{{ auction.get_effective_close_time|date:"M d, Y H:i" }}</strong></div>
+                        <div><span style="color: #64748b;">Forced Close:</span><br><strong style="color: #f87171;">{{ auction.forced_close_time|date:"M d, Y H:i" }}</strong></div>
+                        <div><span style="color: #64748b;">Total Extensions:</span><br><strong id="detailExtensions">{{ auction.total_extensions }}</strong></div>
+                    </div>
+                </div>
+
+                <!-- Rankings Table -->
+                <div class="card">
+                    <h2><i class="fas fa-trophy"></i> Live Rankings</h2>
+                    <div id="rankingsContainer">
+                        {% if bids %}
+                        <div style="overflow-x: auto;">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Rank</th>
+                                    <th>Bidder</th>
+                                    <th>Carrier</th>
+                                    <th>Total Cost</th>
+                                    <th>Base Price</th>
+                                    <th>Freight</th>
+                                    <th>Origin</th>
+                                    <th>Destination</th>
+                                    <th>Transit</th>
+                                    <th>Validity</th>
+                                </tr>
+                            </thead>
+                            <tbody id="bidsList">
+                                {% for bid in bids %}
+                                <tr {% if my_bid and my_bid.bidder_id == bid.bidder_id %}class="my-bid"{% endif %}>
+                                    <td>
+                                        <span class="rank-badge {% if forloop.counter == 1 %}rank-l1{% elif forloop.counter == 2 %}rank-l2{% elif forloop.counter == 3 %}rank-l3{% else %}rank-default{% endif %}">
+                                            L{{ forloop.counter }}
+                                        </span>
+                                    </td>
+                                    <td>{{ bid.bidder.username }}</td>
+                                    <td>{{ bid.carrier_name|default:"N/A" }}</td>
+                                    <td><span class="highlight-total">₹{{ bid.total_cost }}</span></td>
+                                    <td class="charge-dim">₹{{ bid.price }}</td>
+                                    <td class="charge-dim">₹{{ bid.freight_charges }}</td>
+                                    <td class="charge-dim">₹{{ bid.origin_charges }}</td>
+                                    <td class="charge-dim">₹{{ bid.destination_charges }}</td>
+                                    <td>{{ bid.transit_time_days }}d</td>
+                                    <td>{{ bid.quote_validity_days }}d</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                        </div>
+                        {% else %}
+                        <div class="empty-state">
+                            <i class="fas fa-binoculars"></i>
+                            <p>No bids yet. Be the first!</p>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Activity Log -->
+                <div class="card">
+                    <h2><i class="fas fa-chart-line"></i> Activity Log</h2>
+                    <div id="activityLog" style="max-height: 400px; overflow-y: auto;">
+                        {% for event in events %}
+                        <div class="event-item">
+                            <div class="event-type event-type-{{ event.event_type }}">{{ event.get_event_type_display }}</div>
+                            <div class="event-desc">{{ event.description }}</div>
+                            <div class="event-time">{{ event.created_at|date:"M d, H:i:s" }}</div>
+                        </div>
+                        {% empty %}
+                        <div class="empty-state" style="padding: 24px;"><p>No activity yet</p></div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+
+            <div>
+                <!-- Config -->
+                <div class="card">
+                    <h2><i class="fas fa-cog"></i> Auction Configuration</h2>
+                    {% if auction.config %}
+                    <div class="config-item">
+                        <div class="config-label">Trigger Window (X)</div>
+                        <div class="config-value">{{ auction.config.trigger_window_x }} min</div>
+                        <div style="font-size: 11px; color: #475569; margin-top: 4px;">Monitor last X minutes before close</div>
+                    </div>
+                    <div class="config-item">
+                        <div class="config-label">Extension Duration (Y)</div>
+                        <div class="config-value">{{ auction.config.extension_duration_y }} min</div>
+                        <div style="font-size: 11px; color: #475569; margin-top: 4px;">Extend by Y minutes when triggered</div>
+                    </div>
+                    <div class="config-item">
+                        <div class="config-label">Trigger Type</div>
+                        <div class="config-value" style="font-size: 14px;">{{ auction.config.get_trigger_type_display|default:"Not set" }}</div>
+                    </div>
+                    {% else %}
+                    <p style="color: #475569;">No configuration set</p>
+                    {% endif %}
+                </div>
+
+                <!-- Action buttons -->
+                {% if auction.status == 'ACTIVE' and user_role == 'bidder' %}
+                <a href="{% url 'place_bid' auction.id %}" class="btn" style="display: flex; justify-content: center; width: 100%; margin-top: 16px; padding: 14px;">
+                    <i class="fas fa-pen-to-square"></i> {% if my_bid %}Revise My Bid{% else %}Place Bid{% endif %}
+                </a>
+                {% endif %}
+
+                {% if auction.status == 'CLOSED' or auction.status == 'FORCE_CLOSED' %}
+                <div class="closed-banner" style="margin-top: 16px;">
+                    {% if auction.status == 'FORCE_CLOSED' %}<i class="fas fa-lock"></i> Auction Force Closed{% else %}<i class="fas fa-check-circle"></i> Auction Ended{% endif %}
+                </div>
+                {% endif %}
+
+                {% if my_bid %}
+                <div class="card" style="margin-top: 16px;">
+                    <h2><i class="fas fa-bookmark"></i> My Latest Bid</h2>
+                    <div style="font-size: 13px; line-height: 2;">
+                        <div><span style="color: #64748b;">Total:</span> <strong class="highlight-total">₹{{ my_bid.total_cost }}</strong></div>
+                        <div><span style="color: #64748b;">Base:</span> ₹{{ my_bid.price }}</div>
+                        <div><span style="color: #64748b;">Carrier:</span> {{ my_bid.carrier_name }}</div>
+                        <div><span style="color: #64748b;">Transit:</span> {{ my_bid.transit_time_days }} days</div>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Server-rendered auction data passed via data-* attributes (keeps <script> block lint-clean) -->
+    <div id="auction-data"
+         data-auction-id="{{ auction.id }}"
+         data-bidder-id="{{ request.user.id }}"
+         data-api-url="{% if user_role == 'bidder' %}{% url 'bidder_auction_live_data' auction.id %}{% else %}{% url 'auction_live_data' auction.id %}{% endif %}"
+         data-close-time="{{ auction.get_effective_close_time|date:'c' }}"
+         data-total-extensions="{{ auction.total_extensions }}"
+         style="display:none;"></div>
+
+    <script>
+        // ====================
+        // LIVE AUCTION ENGINE (JavaScript)
+        // ====================
+
+        // Read server-rendered values from data-* attributes (avoids Django template syntax in JS)
+        var _el = document.getElementById('auction-data');
+        var auctionId = parseInt(_el.getAttribute('data-auction-id'), 10);
+        var myBidderId = parseInt(_el.getAttribute('data-bidder-id'), 10);
+        var apiUrl = _el.getAttribute('data-api-url');
+
+        var auctionCloseTime = new Date(_el.getAttribute('data-close-time'));
+        var previousExtensions = parseInt(_el.getAttribute('data-total-extensions'), 10);
+
+        // Timer: Updates every second
+        function updateTimer() {
+            const now = new Date();
+            const timeLeft = auctionCloseTime - now;
+
+            if (timeLeft <= 0) {
+                document.getElementById('timeRemaining').textContent = 'Ended';
+                document.getElementById('timeRemaining').style.color = '#f87171';
+            } else {
+                const hours = Math.floor(timeLeft / 3600000);
+                const minutes = Math.floor((timeLeft % 3600000) / 60000);
+                const seconds = Math.floor((timeLeft % 60000) / 1000);
+
+                const timerEl = document.getElementById('timeRemaining');
+                timerEl.textContent = `${hours}h ${minutes}m ${seconds}s`;
+
+                if (timeLeft < 60000) {
+                    timerEl.style.color = '#ef4444';
+                } else if (timeLeft < 300000) {
+                    timerEl.style.color = '#f59e0b';
+                } else {
+                    timerEl.style.color = '#fff';
+                }
+            }
+        }
+
+        // Live Refresh: Polls JSON API every 3 seconds
+        function refreshAuctionData() {
+            const btn = document.getElementById('refreshBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+
+            fetch(apiUrl, {
+                method: 'GET',
+                headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                credentials: 'same-origin'
+            })
+            .then(resp => resp.json())
+            .then(data => {
+                // Update close time (sync timer with extensions)
+                const newCloseTime = new Date(data.current_close_time);
+                if (newCloseTime.getTime() !== auctionCloseTime.getTime()) {
+                    auctionCloseTime = newCloseTime;
+                    document.getElementById('detailCloseTime').textContent = newCloseTime.toLocaleString();
+                }
+
+                // Extension alert
+                if (data.total_extensions > previousExtensions) {
+                    const alertEl = document.getElementById('extensionAlert');
+                    alertEl.style.display = 'block';
+                    alertEl.innerHTML = `<i class="fas fa-clock-rotate-left"></i> Auction EXTENDED! New close: ${newCloseTime.toLocaleTimeString()}. Total extensions: ${data.total_extensions}`;
+                    previousExtensions = data.total_extensions;
+                    setTimeout(() => { alertEl.style.display = 'none'; }, 8000);
+                }
+
+                // Update header stats
+                document.getElementById('bidCount').textContent = data.bid_count;
+                document.getElementById('extensionCount').textContent = data.total_extensions;
+                document.getElementById('detailExtensions').textContent = data.total_extensions;
+                document.getElementById('lowestBid').textContent = data.lowest_bid ? `₹${data.lowest_bid.toFixed(2)}` : '—';
+
+                // Update status
+                document.getElementById('statusText').textContent = data.status_display;
+
+                // Update rankings table
+                if (data.rankings && data.rankings.length > 0) {
+                    let html = '';
+                    data.rankings.forEach((r, i) => {
+                        const rankClass = i === 0 ? 'rank-l1' : i === 1 ? 'rank-l2' : i === 2 ? 'rank-l3' : 'rank-default';
+                        const isMyBid = r.bidder_id === myBidderId;
+                        html += `
+                            <tr${isMyBid ? ' class="my-bid"' : ''}>
+                                <td><span class="rank-badge ${rankClass}">L${r.rank}</span></td>
+                                <td>${r.bidder_name}</td>
+                                <td>${r.carrier_name || 'N/A'}</td>
+                                <td><span class="highlight-total">₹${r.total_cost.toFixed(2)}</span></td>
+                                <td class="charge-dim">₹${r.base_price.toFixed(2)}</td>
+                                <td class="charge-dim">₹${r.freight_charges.toFixed(2)}</td>
+                                <td class="charge-dim">₹${r.origin_charges.toFixed(2)}</td>
+                                <td class="charge-dim">₹${r.destination_charges.toFixed(2)}</td>
+                                <td>${r.transit_days}d</td>
+                                <td>${r.validity_days}d</td>
+                            </tr>
+                        `;
+                    });
+
+                    const tbody = document.getElementById('bidsList');
+                    if (tbody) {
+                        tbody.innerHTML = html;
+                    } else {
+                        document.getElementById('rankingsContainer').innerHTML = `
+                            <div style="overflow-x: auto;">
+                            <table>
+                                <thead><tr>
+                                    <th>Rank</th><th>Bidder</th><th>Carrier</th><th>Total Cost</th>
+                                    <th>Base Price</th><th>Freight</th><th>Origin</th><th>Destination</th>
+                                    <th>Transit</th><th>Validity</th>
+                                </tr></thead>
+                                <tbody id="bidsList">${html}</tbody>
+                            </table>
+                            </div>
+                        `;
+                    }
+                }
+
+                // Update activity log
+                if (data.events && data.events.length > 0) {
+                    let eventsHtml = '';
+                    data.events.forEach(e => {
+                        const time = new Date(e.created_at);
+                        eventsHtml += `
+                            <div class="event-item">
+                                <div class="event-type event-type-${e.event_type}">${e.event_type_display}</div>
+                                <div class="event-desc">${e.description}</div>
+                                <div class="event-time">${time.toLocaleString()}</div>
+                            </div>
+                        `;
+                    });
+                    document.getElementById('activityLog').innerHTML = eventsHtml;
+                }
+
+                // Last update indicator
+                document.getElementById('lastUpdate').textContent =
+                    `Updated ${new Date().toLocaleTimeString()}`;
+
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-arrows-rotate"></i> Refresh';
+            })
+            .catch(err => {
+                console.error('Live refresh error:', err);
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-arrows-rotate"></i> Refresh';
+            });
+        }
+
+        // Start live updates
+        updateTimer();
+        setInterval(updateTimer, 1000);
+        setInterval(refreshAuctionData, 3000);
+    </script>
+</body>
+</html>

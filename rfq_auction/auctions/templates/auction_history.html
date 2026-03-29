@@ -1,0 +1,67 @@
+{% extends 'base.html' %}
+{% block title %}Auction History - RFQ Auction System{% endblock %}
+{% block content %}
+<h2>📜 Auction Events History</h2>
+
+<div style="margin: 20px 0; padding: 15px; background: #f0f4ff; border-radius: 8px;">
+    <strong>📊 Total Events:</strong> {{ events.count }}
+</div>
+
+<!-- Events Timeline -->
+<div style="margin-top: 20px;">
+    {% if events %}
+        {% for event in events %}
+        <div style="border-left: 4px solid #667eea; padding: 16px; margin: 12px 0; background: white; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
+            <div style="display: flex; justify-content: space-between; align-items: start;">
+                <div style="flex: 1;">
+                    <H4 style="margin: 0 0 8px 0; color: #333;">
+                        {% if event.event_type == 'BID_RECEIVED' %}
+                            💰 Bid Received
+                        {% elif event.event_type == 'RANK_CHANGED' %}
+                            🔄 Rank Changed
+                        {% elif event.event_type == 'L1_CHANGED' %}
+                            🏆 L1 Changed
+                        {% elif event.event_type == 'EXTENDED' %}
+                            ⏱️ Auction Extended
+                        {% elif event.event_type == 'CLOSED' %}
+                            ✅ Auction Closed
+                        {% elif event.event_type == 'FORCE_CLOSED' %}
+                            ❌ Force Closed
+                        {% else %}
+                            📋 {{ event.get_event_type_display }}
+                        {% endif %}
+                    </H4>
+                    
+                    <p style="margin: 8px 0; color: #555; font-size: 14px;">{{ event.description }}</p>
+                    
+                    {% if event.extension_reason %}
+                    <p style="margin: 8px 0; color: #666; font-size: 13px; font-style: italic;">
+                        💡 Reason: {{ event.extension_reason }}
+                    </p>
+                    {% endif %}
+                    
+                    <p style="margin: 8px 0; color: #999; font-size: 12px;">
+                        Auction: <strong>{{ event.auction.name }}</strong>
+                        {% if event.bidder %}
+                            | Bidder: <strong>{{ event.bidder.email }}</strong>
+                        {% endif %}
+                    </p>
+                </div>
+                
+                <div style="text-align: right; min-width: 150px; color: #999; font-size: 12px;">
+                    {{ event.created_at|date:"M d, Y H:i" }}
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    {% else %}
+        <div style="text-align: center; padding: 40px; color: #999;">
+            👀 No auction events found yet
+        </div>
+    {% endif %}
+</div>
+
+<p style="text-align: center; color: #999; margin-top: 50px;">
+    <a href="{% url 'landing' %}" style="color: #667eea; text-decoration: none;">← Back to Home</a>
+</p>
+{% endblock %}

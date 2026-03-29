@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bidder Dashboard - RFQ Auction System</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f5f7fa;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header h1 {
+            font-size: 28px;
+        }
+
+        .header a {
+            background: white;
+            color: #f5576c;
+            padding: 12px 24px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: transform 0.2s;
+        }
+
+        .header a:hover {
+            transform: translateY(-2px);
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .content-section {
+            margin-bottom: 40px;
+        }
+
+        .section-title {
+            font-size: 20px;
+            color: #333;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+        }
+
+        .section-title span {
+            margin-right: 10px;
+        }
+
+        .auction-table {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+            overflow: hidden;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th {
+            background: #f5f7fa;
+            padding: 16px;
+            text-align: left;
+            font-weight: 600;
+            color: #333;
+            border-bottom: 2px solid #e0e0e0;
+            font-size: 12px;
+            text-transform: uppercase;
+        }
+
+        td {
+            padding: 16px;
+            border-bottom: 1px solid #f0f0f0;
+            color: #555;
+        }
+
+        tr:hover {
+            background: #fafbfc;
+        }
+
+        .action-btn {
+            background: #f5576c;
+            color: white;
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 12px;
+            text-decoration: none;
+            display: inline-block;
+            transition: background 0.2s;
+            margin-right: 5px;
+        }
+
+        .action-btn:hover {
+            background: #f093fb;
+        }
+
+        .action-btn.secondary {
+            background: #667eea;
+        }
+
+        .action-btn.secondary:hover {
+            background: #764ba2;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #999;
+        }
+
+        .price-highlight {
+            font-weight: 700;
+            color: #f5576c;
+            font-size: 16px;
+        }
+
+        .footer {
+            margin-top: 30px;
+            padding: 20px;
+            text-align: center;
+            color: #999;
+            font-size: 13px;
+        }
+
+        .footer a {
+            color: #f5576c;
+            text-decoration: none;
+        }
+
+        .footer a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div>
+                <h1>💰 Bidder Dashboard</h1>
+                <p style="margin-top: 5px; opacity: 0.9;">Welcome, {{ request.user.username }}</p>
+            </div>
+        </div>
+
+        <!-- Active Auctions Section -->
+        <div class="content-section">
+            <div class="section-title">
+                <span>🔴</span>
+                <span>Active Auctions (Live)</span>
+            </div>
+
+            {% if active_auctions %}
+            <div class="auction-table">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Auction Name</th>
+                            <th>Closes At</th>
+                            <th>Total Bids</th>
+                            <th>Your Bid</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for auction in active_auctions %}
+                        <tr>
+                            <td><strong>{{ auction.name }}</strong></td>
+                            <td>{{ auction.get_effective_close_time|date:"M d, Y H:i" }}</td>
+                            <td>{{ auction.bids.count }}</td>
+                            <td>
+                                {% for bid in auction.bids.all %}
+                                    {% if bid.bidder.id == request.user.id %}
+                                        <span class="price-highlight">₹{{ bid.total_cost }}</span>
+                                    {% endif %}
+                                {% empty %}
+                                    -
+                                {% endfor %}
+                            </td>
+                            <td>
+                                <a href="{% url 'place_bid' auction.id %}" class="action-btn">Bid Now</a>
+                                <a href="{% url 'auction_detail' auction.id %}" class="action-btn secondary">Details</a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="auction-table">
+                <div class="empty-state">
+                    <p>😶 No active auctions at the moment</p>
+                    <p>Check back later for new opportunities to bid</p>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- My Bids Section -->
+        <div class="content-section">
+            <div class="section-title">
+                <span>📊</span>
+                <span>My Bids</span>
+            </div>
+
+            {% if my_bids %}
+            <div class="auction-table">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Auction</th>
+                            <th>Price</th>
+                            <th>Freight</th>
+                            <th>Origin Fee</th>
+                            <th>Destination Fee</th>
+                            <th>Total Cost</th>
+                            <th>Transit Days</th>
+                            <th>Validity Days</th>
+                            <th>Submitted At</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for bid in my_bids %}
+                        <tr>
+                            <td><strong>{{ bid.auction.name }}</strong></td>
+                            <td>₹{{ bid.price }}</td>
+                            <td>₹{{ bid.freight_charges }}</td>
+                            <td>₹{{ bid.origin_charges }}</td>
+                            <td>₹{{ bid.destination_charges }}</td>
+                            <td><span class="price-highlight">₹{{ bid.total_cost }}</span></td>
+                            <td>{{ bid.transit_time_days }}</td>
+                            <td>{{ bid.quote_validity_days }}</td>
+                            <td>{{ bid.submitted_at|date:"M d, H:i" }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="auction-table">
+                <div class="empty-state">
+                    <p>😶 You haven't placed any bids yet</p>
+                    <p>Start bidding on active auctions to get started</p>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <div class="footer">
+            <a href="{% url 'landing' %}">← Back to Home</a> | 
+            <a href="/admin/logout/">Logout</a>
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,311 @@
+"""
+============================================
+INTERVIEW PREPARATION GUIDE - British Auction RFQ
+============================================
+
+WHAT TO EMPHASIZE:
+The intersection of system design, database design, and clean code.
+
+============================================
+OPENING STATEMENT (30 seconds)
+============================================
+
+"I built a British Auction system for managing RFQ supplier bidding with 
+automatic time extensions. The key challenge was handling concurrent bids 
+safely - multiple suppliers might trigger extension conditions simultaneously. 
+
+I solved this using atomic transactions: when a supplier places a bid, 
+the entire flow (validation → bid creation → L1 change detection → extension check) 
+happens in one database transaction, preventing race conditions.
+
+For rankings, I optimized from O(n²) to O(n) by caching latest bid per supplier.
+
+The system has a clean architecture: Models → Services → Serializers → API Views,
+making it testable and maintainable."
+
+============================================
+EXPECTED QUESTIONS & ANSWERS
+============================================
+
+Q: "Walk me through what happens when a supplier places a bid."
+
+A: "Here's the atomic flow in AuctionEngineService.process_bid():
+
+1. VALIDATE
+   - Is auction open? (between start and close times)
+   - Is supplier active?
+   - Is bid amount valid? (> 0)
+
+2. GET CURRENT STATE
+   - Get current L1 (lowest bidder)
+   - Get current rankings
+
+3. CREATE BID
+   - Insert bid into database
+   - Log 'BID_RECEIVED' event
+
+4. CHECK L1 CHANGE  
+   - Compare new bid's effective price vs current L1
+   - If new bid is L1, log 'L1_CHANGED' event
+
+5. CHECK EXTENSION TRIGGER
+   - Is we're in trigger window (last X minutes before close)?
+   - Does trigger_type match? (BID_RECEIVED, RANK_CHANGE, or L1_RANK_CHANGE)
+   - If yes: Extend auction, log 'AUCTION_EXTENDED' event
+
+6. UPDATE AUCTION STATUS
+   - Mark auction as ACTIVE, CLOSED, or FORCE_CLOSED based on time
+
+All this happens in ONE @transaction.atomic block. If ANY step fails, 
+entire bid is rolled back - we never end up in inconsistent state."
+
+File: auctions/services/auction_engine.py, line 38-95
+
+
+Q: "How do you handle concurrent bids?"
+
+A: "@transaction.atomic ensures only one bid transaction completes at a time per auction.
+If two suppliers bid simultaneously:
+- Supplier A's transaction starts first
+- Supplier B's transaction comes in second
+- Supplier A commits: L1 becomes A's bid, maybe audit extends
+- Supplier B's transaction: 
+  - Gets fresh L1 (Supplier A's bid)
+  - Creates their bid
+  - Checks against current L1
+  - Correctly decides if they're L1 or extension triggers
+  
+Database ACID properties guarantee consistency."
+
+File: auctions/services/auction_engine.py
+
+
+Q: "How do rankings work? Isn't it O(n²)?"
+
+A: "Good catch! My solution:
+
+NAIVE APPROACH (O(n²)):
+```python
+for each supplier:
+    for each bid by supplier:
+        compare price
+```
+
+MY APPROACH (O(n)):
+```python
+bids = auction.bids.order_by('supplier_id', '-timestamp')
+latest_bids = {}
+for bid in bids:
+    if bid.supplier_id not in latest_bids:
+        latest_bids[bid.supplier_id] = bid  # Get latest only ONCE per supplier
+
+sorted_bids = sorted(latest_bids.values(), key=lambda b: b.effective_price())
+return rankings_from(sorted_bids)
+```
+
+Why it's efficient:
+- Get latest bid per supplier in ONE pass (O(n))
+- Sort n suppliers (O(n log n), fast)
+- Total: O(n log n) instead of O(n²)
+
+This matters with 1000s of bids per auction."
+
+File: auctions/services/ranking_service.py, lines 18-43
+
+
+Q: "What about the extension logic? How do the 3 trigger types work?"
+
+A: "Config defines trigger_type:
+1. BID_RECEIVED: Extend if ANY bid in last X minutes
+2. RANK_CHANGE: Extend if ANY supplier rank changes  
+3. L1_RANK_CHANGE: Extend only if L1 supplier changes
+
+In ExtensionService.should_extend_auction():
+
+```python
+if trigger_type == 'BID_RECEIVED':
+    return True  # Always extend if in window
+    
+elif trigger_type == 'RANK_CHANGE':
+    if ANY_rank_changed:
+        return True
+        
+elif trigger_type == 'L1_RANK_CHANGE':
+    if L1_changed:  # Detected from did_l1_change()
+        return True
+```
+
+The clever part: All checked in ONE method that returns (should_extend, reason).
+Makes it easy to add new trigger types - just add an elif."
+
+File: auctions/services/extension_service.py, lines 19-48
+
+
+Q: "How do you prevent extending past the forced close time?"
+
+A: "Check before extending:
+
+```python
+def can_extend(self):
+    close_time = self.get_current_close_time()
+    proposed_close = close_time + timedelta(minutes=self.config.extension_duration)
+    return proposed_close <= self.forced_close_time
+```
+
+And when extending:
+
+```python
+def extend_auction(self):
+    new_time = close_time + extension_duration()
+    if new_time > forced_close_time:
+        new_time = forced_close_time  # Cap at maximum
+    self.current_close_time = new_time
+```
+
+Also database constraint prevents invalid states:
+```sql
+CHECK (forced_close_time > bid_close_time)
+```"
+
+File: auctions/models.py, lines 150-160
+
+
+Q: "What data structure would you use for this at scale?"
+
+A: "Current: Single database with auctions/bids/events tables - works up to millions.
+
+At 100 million auctions:
+1. Partition auctions by status (ACTIVE in hot table, archived in cold)
+2. Archive old events to separate storage
+3. Cache current L1 in Redis (TTL when extended)
+4. Event log in separate database or message queue
+5. Real-time extension via message queue + workers
+
+But database-first is correct - premature optimization is bad."
+
+
+Q: "How do you test this?"
+
+A: "Unit tests for each service:
+- ValidationService: test error cases
+- RankingService: test L1 detection with multiple bids
+- ExtensionService: test each trigger type
+- AuctionEngineService: test full bid flow, extension, events
+
+Integration tests:
+- Create auction → activate → place bids → verify rankings
+- Verify extension happens at right time
+- Verify L1 changes trigger correctly
+- Concurrent bid tests (simulate race conditions)
+
+End-to-end tests:
+- Full API flow with real HTTP requests
+- Verify response formats"
+
+
+Q: "Any design decisions you'd change?"
+
+A: "Maybe:
+1. Add 'created_by' field to Auction to track which admin created it
+2. Add soft deletes instead of hard deletes
+3. Add explicit Bid.is_active field (vs checking timestamp)
+4. Add cached_effective_price to Bid for even faster ranking
+5. Add WebSocket for real-time bid updates
+
+But these are optimizations - current design is clean and works well."
+
+============================================
+CODE TO SHOW
+============================================
+
+1. Models - Show:
+   - How Auction has helper methods (is_active, can_extend, extend_auction)
+   - Database constraints
+   - Note: AuctionEvent with JSON metadata for flexibility
+
+2. Services - Show:
+   - AuctionEngineService.process_bid() - highlight @transaction.atomic
+   - RankingService.get_current_rankings() - highlight O(n) approach
+   - ExtensionService.should_extend_auction() - highlight trigger type checks
+
+3. Views - Show:
+   - How permission checks work
+   - How BidPlacementResult is returned
+   - How views are clean (just call services)
+
+4. Real API Response - Show:
+   - Complete bid placement response
+   - How it includes ranking, events, auction state
+   - Professional structure
+
+============================================
+STATS TO MENTION
+============================================
+
+"The entire system is about 1600 lines of clean code:
+- Models: ~450 lines (with good design)
+- Services: ~550 lines (core logic)
+- Serializers: ~250 lines (API contracts)
+- Views: ~350 lines (clean API layer)
+
+I could use 5000+ lines of complex, clever code, but I chose 1600 
+lines of UNDERSTANDABLE code. That's actually harder."
+
+============================================
+FINAL PITCH
+============================================
+
+"This isn't just code - it's how I think about problems:
+
+1. CLEAR REQUIREMENTS
+   - British auction = specific rules
+   - Need to handle concurrent bidding = transactions
+   - Need audit trail = events
+   
+2. ARCHITECTURE
+   - Separate concerns (models, services, views)
+   - Each part testable independently
+   - Easy to change business rules (just update config)
+   
+3. CODE QUALITY
+   - Readable (I could read this code in 6 months)
+   - Maintainable (someone else can work on it)
+   - Performant (O(n) ranking, efficient queries)
+   
+4. PRODUCTION-READY
+   - Handles errors gracefully
+   - Atomic transactions (safe)
+   - Audit trail (compliance)
+   - Extensible (add new trigger types easily)
+
+This is how senior engineers think - solving real problems 
+with clean, professional code that other humans can understand and maintain."
+
+============================================
+NERVOUSNESS TIPS
+============================================
+
+If interviewer asks something you don't know:
+- "Good question, I didn't consider that. Here's how I'd approach it..."
+- Show that you think systematically
+- It's OK to not know everything!
+
+If they ask "why not use X framework":
+- Show you understand tradeoffs
+- Explain why you chose current approach
+- Be humble: "X would work too, but I chose Y because..."
+
+If they deep-dive into one area:
+- Show genuine interest (great question!)
+- Go deep (don't just recite)
+- Show passion for solving problems
+
+Remember: They want to hire someone who:
+- Solves real problems (✓ concurrent bidding handled)
+- Writes clean code (✓ 1600 lines, well-organized)
+- Thinks systematically (✓ architecture layers)
+- Communicates well (✓ docstrings, clear naming)
+- Continuous learner (✓ willing to explain tradeoffs)
+
+You have ALL of these. Go crush it! 🚀
+"""

@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create Auction - RFQ Auction System</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f5f7fa; min-height: 100vh; padding: 20px; }
+        .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; border-radius: 15px; margin-bottom: 30px; max-width: 800px; margin-left: auto; margin-right: auto; }
+        .header h1 { font-size: 28px; }
+        .header p { margin-top: 5px; opacity: 0.9; }
+        .container { max-width: 800px; margin: 0 auto; background: white; padding: 40px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.08); }
+        .section { margin-bottom: 30px; }
+        .section h2 { font-size: 18px; color: #333; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 2px solid #e0e0e0; }
+        .form-group { margin-bottom: 16px; }
+        label { display: block; margin-bottom: 8px; color: #333; font-weight: 600; font-size: 14px; }
+        input, textarea, select { width: 100%; padding: 12px 15px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 14px; font-family: inherit; transition: border-color 0.3s; }
+        input:focus, textarea:focus, select:focus { outline: none; border-color: #667eea; }
+        textarea { resize: vertical; min-height: 100px; }
+        .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .form-help { font-size: 12px; color: #999; margin-top: 4px; }
+        .error { background: #ffebee; color: #c62828; padding: 12px; border-radius: 8px; margin-top: 10px; font-size: 13px; }
+        .error ul { margin: 10px 0 0 20px; }
+        .error li { margin: 5px 0; }
+        .form-actions { display: flex; gap: 15px; margin-top: 30px; }
+        button { flex: 1; padding: 14px; font-weight: 600; border: none; border-radius: 8px; cursor: pointer; font-size: 16px; transition: transform 0.2s; }
+        .btn-primary { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; }
+        .btn-primary:hover { transform: translateY(-2px); }
+        .btn-secondary { background: #f0f0f0; color: #333; }
+        .btn-secondary:hover { background: #e0e0e0; }
+        .back-link { margin-bottom: 20px; }
+        .back-link a { color: white; text-decoration: none; font-weight: 600; font-size: 14px; }
+        .back-link a:hover { text-decoration: underline; }
+        .back-link a i, .header h1 i, .section h2 i { margin-right: 8px; }
+        .success-msg { background: #e8f5e9; color: #2e7d32; padding: 12px; border-radius: 8px; margin-bottom: 20px; font-size: 14px; font-weight: 600; }
+        .error-msg { background: #ffebee; color: #c62828; padding: 12px; border-radius: 8px; margin-bottom: 20px; font-size: 14px; font-weight: 600; }
+        @media (max-width: 768px) { .form-grid { grid-template-columns: 1fr; } .form-actions { flex-direction: column; } }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="back-link">
+            <a href="{% url 'auctioneer_dashboard' %}"><i class="fas fa-arrow-left"></i> Back to Dashboard</a>
+        </div>
+        <h1><i class="fas fa-plus-circle"></i> Create New Auction</h1>
+        <p>Set up your RFQ with British auction configuration</p>
+    </div>
+
+    <div class="container">
+        {% if messages %}
+            {% for message in messages %}
+                <div class="{% if message.tags == 'success' %}success-msg{% else %}error-msg{% endif %}">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        {% endif %}
+
+        {% if form.non_field_errors %}
+            <div class="error" style="margin-bottom: 20px;">
+                {% for error in form.non_field_errors %}
+                    <p>{{ error }}</p>
+                {% endfor %}
+            </div>
+        {% endif %}
+
+        {% if form.errors %}
+            <div class="error" style="margin-bottom: 20px;">
+                <strong>Please fix the following errors:</strong>
+                <ul>
+                {% for field, errors in form.errors.items %}
+                    {% for error in errors %}
+                        <li><strong>{{ field }}:</strong> {{ error }}</li>
+                    {% endfor %}
+                {% endfor %}
+                </ul>
+            </div>
+        {% endif %}
+
+        <form method="POST">
+            {% csrf_token %}
+
+            <!-- Basic Information -->
+            <div class="section">
+                <h2><i class="fas fa-file-alt"></i> Basic Information</h2>
+                <div class="form-group">
+                    <label for="id_name">Auction Name *</label>
+                    {{ form.name }}
+                    {% if form.name.errors %}<div class="error">{{ form.name.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="form-group">
+                    <label for="id_description">Description</label>
+                    {{ form.description }}
+                    {% if form.description.errors %}<div class="error">{{ form.description.errors.0 }}</div>{% endif %}
+                </div>
+            </div>
+
+            <!-- Timeline -->
+            <div class="section">
+                <h2><i class="fas fa-clock"></i> Timeline</h2>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="id_bid_start_time">Start Time *</label>
+                        {{ form.bid_start_time }}
+                        <div class="form-help">When bidding begins</div>
+                        {% if form.bid_start_time.errors %}<div class="error">{{ form.bid_start_time.errors.0 }}</div>{% endif %}
+                    </div>
+                    <div class="form-group">
+                        <label for="id_bid_close_time">Initial Close Time *</label>
+                        {{ form.bid_close_time }}
+                        <div class="form-help">When bidding closes normally</div>
+                        {% if form.bid_close_time.errors %}<div class="error">{{ form.bid_close_time.errors.0 }}</div>{% endif %}
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="id_forced_close_time">Forced Close Time *</label>
+                    {{ form.forced_close_time }}
+                    <div class="form-help">Final deadline — auction cannot extend beyond this time</div>
+                    {% if form.forced_close_time.errors %}<div class="error">{{ form.forced_close_time.errors.0 }}</div>{% endif %}
+                </div>
+            </div>
+
+            <!-- British Auction Configuration -->
+            <div class="section">
+                <h2><i class="fas fa-crosshairs"></i> British Auction Configuration</h2>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="id_config_trigger_window_x">Trigger Window (X minutes) *</label>
+                        {{ form.config_trigger_window_x }}
+                        <div class="form-help">Minutes before close to start monitoring for bids</div>
+                        {% if form.config_trigger_window_x.errors %}<div class="error">{{ form.config_trigger_window_x.errors.0 }}</div>{% endif %}
+                    </div>
+                    <div class="form-group">
+                        <label for="id_config_extension_duration_y">Extension Duration (Y minutes) *</label>
+                        {{ form.config_extension_duration_y }}
+                        <div class="form-help">How long to extend each time when triggered</div>
+                        {% if form.config_extension_duration_y.errors %}<div class="error">{{ form.config_extension_duration_y.errors.0 }}</div>{% endif %}
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="id_config_trigger_type">Trigger Type *</label>
+                    {{ form.config_trigger_type }}
+                    <div class="form-help">When should the auction auto-extend?</div>
+                    {% if form.config_trigger_type.errors %}<div class="error">{{ form.config_trigger_type.errors.0 }}</div>{% endif %}
+                </div>
+            </div>
+
+            <div class="form-actions">
+                <a href="{% url 'auctioneer_dashboard' %}" style="flex: 1;">
+                    <button type="button" class="btn-secondary" style="width: 100%;">Cancel</button>
+                </a>
+                <button type="submit" class="btn-primary">Create Auction</button>
+            </div>
+        </form>
+    </div>
+</body>
+</html>
