@@ -161,16 +161,6 @@ See `API_TESTING_GUIDE.txt` for detailed request/response examples.
 5. **Understandable** - 1600 lines of clean code, human-readable
 6. **Extensible** - New trigger types, new business rules, easy to add
 
-## Interview Talking Points
-
-**Opening**: 
-"This is a real-world auction system. The key challenge: concurrent bids must be safe. I solved this with atomic transactions where bid placement, L1 detection, and extension checking happen together. Rankings are O(n) not O(n²). Three configurable triggers make it flexible."
-
-**Architecture**:
-"Clean layers - Models, Services, Serializers, Views. Each part testable independently. Services contain real business logic, views just orchestrate."
-
-**Key Insight**:
-"The atomic bid placement ensures we never have race conditions where two concurrent bids trigger conflicting extensions. ACID properties guarantee consistency."
 
 ## Documentation
 
@@ -187,21 +177,4 @@ See `API_TESTING_GUIDE.txt` for detailed request/response examples.
 - **Database**: Proper indexes, constraints, efficient queries
 - **API**: RESTful, proper status codes, meaningful responses
 
-## For GoComet Interview
 
-This project demonstrates:
-- ✅ System design thinking
-- ✅ Database design with real constraints
-- ✅ Clean code practices
-- ✅ Real-world problem solving (concurrent bidding)
-- ✅ Performance optimization (O(n) ranking)
-- ✅ Team communication (docstrings, clear naming)
-- ✅ Professional code structure
-
-**Status**: Interview-ready. Production-ready. 🚀
-
----
-
-**Built for GoComet 2nd Round Assignment**  
-*British Auction in RFQ System*  
-*Created: March 2026*
